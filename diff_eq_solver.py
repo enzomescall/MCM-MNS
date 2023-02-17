@@ -4,6 +4,32 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.integrate import odeint
 
+"""
+Code to solve a system of differential equations
+Taken from: https://scipy-cookbook.readthedocs.io/items/LoktaVolterraTutorial.html
+
+The Lotka-Volterra equations are a pair of first-order, non-linear, differential equations
+often used to describe the dynamics of biological systems in which two species interact,
+one a predator and the other its prey. The two species are called x and y.
+The equations are:
+
+dx/dt = a*x - b*x*y
+dy/dt = -c*y + d*b*x*y
+
+where:
+a = growth rate of prey when there is no predator
+b = death rate of prey due to predation
+c = death rate of predator when there is no prey
+d = growth rate of predator when there is prey
+
+I have expanded these to include a poaching parameter p
+dx/dt = (a - p)*x - b*x*y
+dy/dt = -c*y + d*b*x*y
+
+where:
+p = poaching rate of outside humans
+"""
+
 # Definition of parameters
 a = 1.
 b = 0.1
