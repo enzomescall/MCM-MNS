@@ -15,7 +15,7 @@ library(tidyverse)
 predator.pray.model = function(t, State, Pars) {
   with(as.list(c(State, Pars)), {
     dPredator = a*x - b*x*y
-    dPrey     = d*b*x*y -c*y
+    dPrey     = d*x*y -c*y
     
     equations = c(dPredator, dPrey)
     return(list(equations))
@@ -23,12 +23,12 @@ predator.pray.model = function(t, State, Pars) {
 }
 
 # Time vectors, parameters, and initial condition
-t = seq(0, 60, 0.1)
+t = seq(0, 100, 0.1)
 
-Pars = c(a = 1.0,
-         b = 0.1,
-         c = 1.5,
-         d = 0.75)
+Pars = c(a = 0.3,
+         b = 0.05,
+         c = 0.4,
+         d = 0.1)
 
 X_0 = c(x = 4, y = 2)
 ```
@@ -60,7 +60,7 @@ expand.grid(a = a_vals, b = b_vals) %>%
   do({ode(func = predator.pray.model,
           y = X_0,
           times = t,
-          parms = c(a=.$a, b=.$b, c = 0.4, d = 2)) %>%
+          parms = c(a=.$a, b=.$b, c = 0.4, d = 0.05)) %>%
         as.data.frame()}) %>%
   ggplot(aes(x = time)) +
     geom_line(aes(y = x), color = "red") +
@@ -68,36 +68,23 @@ expand.grid(a = a_vals, b = b_vals) %>%
     facet_grid(a ~ b, scales='free_y', labeller=label_both) +
     labs(y = "Population")
 ```
-
 ```{r}
 flowField = flowField(predator.pray.model,
-                      xlim = c(0, 60),
+                      xlim = c(0, 20),
                       ylim = c(0, 30),
                       parameters = Pars,
                       add = FALSE)
 
 trajectory1 = trajectory(predator.pray.model,
-                      y0 = c(10, 5),
-                      tlim = c(0, 30),
+                    y0 = c(10, 2),
+                      tlim = c(0, 3000),
                       parameters = Pars,
                       col = "purple")
 
-trajectory2 = trajectory(predator.pray.model,
-                      y0 = c(12, 5),
-                      tlim = c(0, 30),
-                      parameters = Pars,
-                      col = "blue")
-
-trajectory3 = trajectory(predator.pray.model,
-                      y0 = c(6, 5),
-                      tlim = c(0, 30),
-                      parameters = Pars,
-                      col = "red")
-
-trajectory3 = trajectory(predator.pray.model,
-                y0 = c(1, 25),
-                      tlim = c(0, 30),
-                      parameters = Pars)
+nullcline1 = nullclines(predator.pray.model,
+                        xlim = c(0, 20),
+                        ylim = c(0, 30),
+                        parameters = Pars)
 ```
 
 

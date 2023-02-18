@@ -11,41 +11,87 @@ library(phaseR)
 library(tidyverse)
 ```
 
+
+
 ```{r}
 predator.pray.model = function(t, State, Pars) {
   with(as.list(c(State, Pars)), {
-    dPrey = r * Prey * (1 - Prey/k) - w_0 * (Prey * Predator)/(Prey + a/2) - (1 - d_Prey) * Prey - alpha * Poaching * Prey
-    dPredator = -m*Predator + w_1 * (Prey * Predator)/(Prey + a/2) - c * Predator - (1 - d_Predator) * Predator
-    dPoaching = gamma * (r_p * Prey * Poaching - (omega + risk * L) * Poaching)
+    dPrey = (b * (1 - Prey/(k - eta * Degradation)) - h_0 * Predator - alpha * Poaching) * Prey + m_0 - m * Degradation
     
-    equations = c(dPredator, dPrey, dPoaching)
+    dPredator = ( h_1 * (Prey) - d - RetaliatoryKillings - S * Tourism) * Predator
+    
+    dTourism = A/Tourism - delta * Degradation
+    
+    dPoaching = gamma * (r_p * Prey - (Omega + sigma_p * (lambda_0 + lambda * Tourism))) * Poaching
+    
+    dRetaliatoryKillings = c * Predator - B * Tourism
+    
+    dDegradation = G - E_r - I_0 + (P_t - I_t) * Tourism
+  
+    equations = c(dPrey, dPredator, dTourism,
+                dPoaching, dRetaliatoryKillings, dDegradation)
+    
     return(list(equations))
   })
 }
 
 # Time vectors, parameters, and initial condition
-t = seq(0, 60, 0.1)
+t = seq(0, 3, 0.01)
 
-Pars = c(r = 1.0,
-         k = 65,
-         w_0 = 0.3,
-         a = 15,
-         d_Prey = 0.95,
-         alpha = 0.1,
-         m = 0.5,
-         w_1 = 0.3,
-         c = 0.1,
-         d_Predator = 0.95,
-         gamma = 1,
-         r_p = 50,
-         omega = 20,
-         risk = 10,
-         L = 100)
+Pars = c(gamma = 0.9,   # speed of poaching adjustment
+         r_p =  1,      # revenue per poach
+         Omega =  1,    # opportunity cost
+         sigma_p = 0.7, # risk of poaching
+         lambda_0 = 20, # base law enforcement level
+         lambda = 0.2,  # law enforcement per investment
+         c = 0.1,       # culling rate per predator
+         B = 5,         # boma construction per unit invested
+         E_r = 50,      # baseline recovery rate
+         I_0 = 50,      # baseline government investment
+         P_t = 1,       # average pollution per tourist
+         I_t = 0.9,       # investment into ecology per tourism income
+         G = 1,         # impact of global warming on degradation
+         b = 0.3,       # birth rate of prey
+         k = 1000,      # carrying capacity of prey
+         eta = 10,      # sensitivity of degradation on carrying cap
+         h_0 = 0.1,     # effect of hunting on prey population
+         alpha = 0.1,   # poaching effectiveness
+         m_0 = 0.1,     # baseline migration inwards
+         m = 0.01,      # effect of degradation on outwards migration
+         h_1 = 0.1,     # conversion of prey biomass into predator biomass
+         d = 0.4,       # death rate of predators
+         S = 0.1,       # sensitivity of predators to tourist distractions
+         delta = 0.5,   # effect of degradation on tourism
+         A = 1000)      # tourism destination attractiveness saturation
 
-X_0 = c(Prey = 10,
-        Predator = 4,
-        Poaching = 2)
+X_0 = c(Prey = 5,
+        Predator = 2,
+        Tourism = 1,
+        Poaching = 1,
+        RetaliatoryKillings = 1,
+        Degradation = 1)
 ```
+
+```{r}
+# Calculating where the equilibrium is gonna be
+
+with(as.list(Pars), {
+  Tourism = (E_r + I_0 - G)/(P_t - I_t)
+  
+  Predator = Tourism * B/c
+  
+  Degradation = Tourism * A/delta
+  
+  Prey = ()
+  
+  RetaliatoryKillings = 0
+  
+  Poaching = 0
+  
+  c(Prey, Predator, Tourism, Poaching, RetaliatoryKillings, Degradation)
+})
+```
+
 
 ```{r}
 ode(
@@ -58,60 +104,33 @@ ode(
 
 ```{r}
 out %>%
-  gather(variable, value, -time) %>%
-  ggplot(aes(x = time, y = value, color = variable)) +
+gather(variable, value, -time) %>%
+ggplot(aes(x = time, y = value, color = variable)) +
     geom_line() +
-  theme_classic() +
-    labs(x = 'time (yr)',y = 'populations')
-```
-
-```{r}
-a_vals = c(0.3, 0.7, 1)
-b_vals = c(0.05, 0.1, 0.3)
-
-expand.grid(a = a_vals, b = b_vals) %>%
-  group_by(a, b) %>%
-  do({ode(func = predator.pray.model,
-          y = X_0,
-          times = t,
-          parms = c(a=.$a, b=.$b, c = 0.4, d = 2)) %>%
-        as.data.frame()}) %>%
-  ggplot(aes(x = time)) +
-    geom_line(aes(y = x), color = "red") +
-    geom_line(aes(y = y), color = "blue") +
-    facet_grid(a ~ b, scales='free_y', labeller=label_both) +
-    labs(y = "Population")
+    labs(x = 'time',y = 'populations')
 ```
 
 ```{r}
 flowField = flowField(predator.pray.model,
-                      xlim = c(0, 60),
-                      ylim = c(0, 30),
+                      xlim = c(0, 10),
+                      ylim = c(0, 10),
                       parameters = Pars,
+                      state.names = c("Prey", "Predator"),
                       add = FALSE)
 
 trajectory1 = trajectory(predator.pray.model,
-                      y0 = c(10, 5),
-                      tlim = c(0, 30),
-                      parameters = Pars,
-                      col = "purple")
+                        y0 = c(5, 2),
+                        tlim = c(0, 20),
+                        parameters = Pars,
+                        state.names = c("Prey", "Predator"),
+                        col = "purple")
 
-trajectory2 = trajectory(predator.pray.model,
-                      y0 = c(12, 5),
-                      tlim = c(0, 30),
-                      parameters = Pars,
-                      col = "blue")
-
-trajectory3 = trajectory(predator.pray.model,
-                      y0 = c(6, 5),
-                      tlim = c(0, 30),
-                      parameters = Pars,
-                      col = "red")
-
-trajectory3 = trajectory(predator.pray.model,
-                y0 = c(1, 25),
-                      tlim = c(0, 30),
-                      parameters = Pars)
+#nullcline1 = nullclines(predator.pray.model,
+#                        xlim = c(0, 170),
+#                        ylim = c(0, 500),
+#                        parameters = Pars,
+#                        state.names = c("Prey", "Predator"))
+                          
 ```
 
 
