@@ -9,6 +9,7 @@ output: html_document
 library(deSolve)
 library(phaseR)
 library(tidyverse)
+library(plotly)
 ```
 
 
@@ -18,7 +19,7 @@ predator.pray.model = function(t, State, Pars) {
   with(as.list(c(State, Pars)), {
     dPrey = (b * (1 - Prey/(k - eta * Degradation)) - h_0 * Predator - alpha * Poaching) * Prey + m_0 - m * Degradation
     
-    dPredator = ( h_1 * (Prey) - d - RetaliatoryKillings - S * Tourism) * Predator
+    dPredator = ( h_1 * (Prey) - d - beta * RetaliatoryKillings - S * Tourism) * Predator
     
     dTourism = A/Tourism - delta * Degradation
     
@@ -36,40 +37,41 @@ predator.pray.model = function(t, State, Pars) {
 }
 
 # Time vectors, parameters, and initial condition
-t = seq(0, 3, 0.01)
+t = seq(0, 1000, 0.02)
 
-Pars = c(gamma = 0.9,   # speed of poaching adjustment
-         r_p =  1,      # revenue per poach
-         Omega =  1,    # opportunity cost
-         sigma_p = 0.7, # risk of poaching
-         lambda_0 = 20, # base law enforcement level
-         lambda = 0.2,  # law enforcement per investment
-         c = 0.1,       # culling rate per predator
-         B = 5,         # boma construction per unit invested
-         E_r = 50,      # baseline recovery rate
-         I_0 = 50,      # baseline government investment
-         P_t = 1,       # average pollution per tourist
-         I_t = 0.9,       # investment into ecology per tourism income
-         G = 1,         # impact of global warming on degradation
+Pars = c(gamma = 1,     # speed of poaching adjustment
+         r_p =  0.04,   # revenue per poach
+         Omega =  0.6,  # opportunity cost
+         sigma_p = 0.01,# risk of poaching
+         lambda_0 = 30, # base law enforcement level
+         lambda = 10,   # law enforcement per investment
+         c = 0.375,     # culling rate per predator
+         B = 0.5,       # boma construction per unit invested
+         E_r = 0.5,     # baseline recovery rate
+         I_0 = 0.5,     # baseline government investment
+         P_t = 0.3,     # average pollution per tourist
+         I_t = 0.1,     # investment into ecology per tourism income
+         G = 0.4,       # impact of global warming on degradation
          b = 0.3,       # birth rate of prey
-         k = 1000,      # carrying capacity of prey
-         eta = 10,      # sensitivity of degradation on carrying cap
-         h_0 = 0.1,     # effect of hunting on prey population
-         alpha = 0.1,   # poaching effectiveness
-         m_0 = 0.1,     # baseline migration inwards
-         m = 0.01,      # effect of degradation on outwards migration
-         h_1 = 0.1,     # conversion of prey biomass into predator biomass
-         d = 0.4,       # death rate of predators
-         S = 0.1,       # sensitivity of predators to tourist distractions
-         delta = 0.5,   # effect of degradation on tourism
-         A = 1000)      # tourism destination attractiveness saturation
+         k = 120,       # carrying capacity of prey
+         eta = 1,       # sensitivity of degradation on carrying cap
+         h_0 = 0.05,    # effect of hunting on prey population
+         alpha = 0.01,  # poaching effectiveness
+         m_0 = 1.5,     # baseline migration inwards
+         m = 0.5,       # effect of degradation on outwards migration
+         h_1 = 0.05,    # conversion of prey biomass into predator biomass
+         d = 0.17,      # death rate of predators
+         beta = 0.1,    # effectiveness of retaliatory killings
+         S = 0.01,      # sensitivity of predators to tourist distractions
+         delta = 0.01,  # effect of degradation on tourism
+         A = 0.01)      # tourism destination attractiveness saturation
 
-X_0 = c(Prey = 5,
-        Predator = 2,
-        Tourism = 1,
-        Poaching = 1,
-        RetaliatoryKillings = 1,
-        Degradation = 1)
+X_0 = c(Prey = 30,
+        Predator = 4,
+        Tourism = 3,
+        Poaching = 2.30792,
+        RetaliatoryKillings = 13,
+        Degradation = 3)
 ```
 
 ```{r}
@@ -82,13 +84,13 @@ with(as.list(Pars), {
   
   Degradation = Tourism * A/delta
   
-  Prey = ()
+  Prey = (Omega + sigma_p * (lambda_0 + lambda * Tourism))/r_p
   
-  RetaliatoryKillings = 0
+  RetaliatoryKillings =  (h_1 * Prey - d - S * Tourism)/beta
   
-  Poaching = 0
+  Poaching = ((b * (1 - Prey / (k - eta * Degradation)) - h_0 * Predator) * Prey + m_0 - m * Degradation)/(alpha * Prey)
   
-  c(Prey, Predator, Tourism, Poaching, RetaliatoryKillings, Degradation)
+  c(Prey = Prey, Pred = Predator, T = Tourism, Poach = Poaching, RK = RetaliatoryKillings, D = Degradation)
 })
 ```
 
@@ -107,31 +109,45 @@ out %>%
 gather(variable, value, -time) %>%
 ggplot(aes(x = time, y = value, color = variable)) +
     geom_line() +
-    labs(x = 'time',y = 'populations')
+    labs(x = 'time',y = 'Counts')
 ```
 
 ```{r}
-flowField = flowField(predator.pray.model,
-                      xlim = c(0, 10),
-                      ylim = c(0, 10),
-                      parameters = Pars,
-                      state.names = c("Prey", "Predator"),
-                      add = FALSE)
+a_vals = c(0.3, 0.7, 1)
+b_vals = c(0.05, 0.1, 0.3)
 
-trajectory1 = trajectory(predator.pray.model,
-                        y0 = c(5, 2),
-                        tlim = c(0, 20),
-                        parameters = Pars,
-                        state.names = c("Prey", "Predator"),
-                        col = "purple")
-
-#nullcline1 = nullclines(predator.pray.model,
-#                        xlim = c(0, 170),
-#                        ylim = c(0, 500),
-#                        parameters = Pars,
-#                        state.names = c("Prey", "Predator"))
-                          
+expand.grid(a = a_vals, b = b_vals) %>%
+  group_by(a, b) %>%
+  do({ode(func = predator.pray.model,
+          y = X_0,
+          times = t,
+          parms = c(a=.$a, b=.$b, c = 0.4, d = 0.05)) %>%
+        as.data.frame()}) %>%
+  ggplot(aes(x = time)) +
+    geom_line(aes(y = x), color = "red") +
+    geom_line(aes(y = y), color = "blue") +
+    facet_grid(a ~ b, scales='free_y', labeller=label_both) +
+  labs(y = "Population")
 ```
+
+
+```{r}
+out %>%
+  ggplot(aes(x = Predator,y = Prey)) +
+  geom_path() +
+  geom_point(aes(x = X_0[2], y = X_0[1]), colour="red") +
+  labs(title = "Predator x Pray Dynamics in the System of ODEs",
+       subtitle = "Red point indicates initial condition",
+       x = "Predator Population (Thousands)",
+       y = "Prey Population (Thousands)")
+```
+
+```{r}
+out %>%
+  plot_ly(x = ~Predator, y = ~Prey, z = ~Poaching) %>%
+    add_paths()
+```
+
 
 
 
