@@ -7,7 +7,6 @@ output: html_document
 
 ```{r setup, include=FALSE}
 library(deSolve)
-library(phaseR)
 library(tidyverse)
 library(plotly)
 ```
@@ -37,7 +36,7 @@ predator.pray.model = function(t, State, Pars) {
 }
 
 # Time vectors, parameters, and initial condition
-t = seq(0, 1000, 0.02)
+t = seq(0, 50, 0.02)
 
 Pars = c(gamma = 1,     # speed of poaching adjustment
          r_p =  0.04,   # revenue per poach
@@ -66,7 +65,7 @@ Pars = c(gamma = 1,     # speed of poaching adjustment
          delta = 0.01,  # effect of degradation on tourism
          A = 0.01)      # tourism destination attractiveness saturation
 
-X_0 = c(Prey = 30,
+X_0 = c(Prey = 300,
         Predator = 4,
         Tourism = 3,
         Poaching = 2.30792,
@@ -109,7 +108,7 @@ out %>%
 gather(variable, value, -time) %>%
 ggplot(aes(x = time, y = value, color = variable)) +
     geom_line() +
-    labs(x = 'time',y = 'Counts')
+  labs(x = 'time',y = 'Counts')
 ```
 
 ```{r}
