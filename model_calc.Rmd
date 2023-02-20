@@ -11,6 +11,50 @@ library(tidyverse)
 library(plotly)
 ```
 
+```{r}
+theme_Publication <- function(base_size=14, base_family="helvetica") {
+      library(grid)
+      library(ggthemes)
+      (theme_foundation(base_size=base_size, base_family=base_family)
+       + theme(plot.title = element_text(face = "bold",
+                                         size = rel(1.2), hjust = 0.5),
+               text = element_text(),
+               panel.background = element_rect(colour = NA),
+               plot.background = element_rect(colour = NA),
+               panel.border = element_rect(colour = NA),
+               axis.title = element_text(face = "bold",size = rel(1)),
+               axis.title.y = element_text(angle=90,vjust =2),
+               axis.title.x = element_text(vjust = -0.2),
+               axis.text = element_text(), 
+               axis.line = element_line(colour="black"),
+               axis.ticks = element_line(),
+               panel.grid.major = element_line(colour="#f0f0f0"),
+               panel.grid.minor = element_blank(),
+               legend.key = element_rect(colour = NA),
+               legend.position = "bottom",
+               legend.direction = "horizontal",
+               legend.key.size= unit(0.2, "cm"),
+               legend.margin = unit(0, "cm"),
+               legend.title = element_text(face="italic"),
+               plot.margin=unit(c(10,5,5,5),"mm"),
+               strip.background=element_rect(colour="#f0f0f0",fill="#f0f0f0"),
+               strip.text = element_text(face="bold")
+          ))
+      
+}
+
+scale_fill_Publication <- function(...){
+      library(scales)
+      discrete_scale("fill","Publication",manual_pal(values = c("#386cb0","#fdb462","#7fc97f","#ef3b2c","#662506","#a6cee3","#fb9a99","#984ea3","#ffff33")), ...)
+
+}
+
+scale_colour_Publication <- function(...){
+      library(scales)
+      discrete_scale("colour","Publication",manual_pal(values = c("#386cb0","#fdb462","#7fc97f","#ef3b2c","#662506","#a6cee3","#fb9a99","#984ea3","#ffff33")), ...)
+
+}
+```
 
 
 ```{r}
@@ -18,32 +62,32 @@ predator.pray.model = function(t, State, Pars) {
   with(as.list(c(State, Pars)), {
     dPrey = (b * (1 - Prey/(k - eta * Degradation)) - h_0 * Predator - alpha * Poaching) * Prey + m_0 - m * Degradation
     
-    dPredator = ( h_1 * (Prey) - d - beta * RetaliatoryKillings - S * Tourism) * Predator
+    dPredator = ( h_1 * (Prey) - d - beta * RetaliatoryKilling - S * Tourism) * Predator
     
     dTourism = A/Tourism - delta * Degradation
     
     dPoaching = gamma * (r_p * Prey - (Omega + sigma_p * (lambda_0 + lambda * Tourism))) * Poaching
+
+    dRetaliatoryKilling = c * Predator - B * Tourism
     
-    dRetaliatoryKillings = c * Predator - B * Tourism
-    
-    dDegradation = G - E_r - I_0 + (P_t - I_t) * Tourism
+    dDegradation = G - E_r - I_0 + (P_t - I_t) * Tourism 
   
     equations = c(dPrey, dPredator, dTourism,
-                dPoaching, dRetaliatoryKillings, dDegradation)
+                dPoaching, dRetaliatoryKilling, dDegradation)
     
-    return(list(equations))
+    return(list(0.4*equations))
   })
 }
 
 # Time vectors, parameters, and initial condition
-t = seq(0, 50, 0.02)
+t = seq(0, 700, 1)
 
 Pars = c(gamma = 1,     # speed of poaching adjustment
-         r_p =  0.04,   # revenue per poach
+         r_p =  0.05,   # revenue per poach
          Omega =  0.6,  # opportunity cost
          sigma_p = 0.01,# risk of poaching
-         lambda_0 = 30, # base law enforcement level
-         lambda = 10,   # law enforcement per investment
+         lambda_0 = 5, # base law enforcement level
+         lambda = 35,   # law enforcement per investment
          c = 0.375,     # culling rate per predator
          B = 0.5,       # boma construction per unit invested
          E_r = 0.5,     # baseline recovery rate
@@ -65,11 +109,11 @@ Pars = c(gamma = 1,     # speed of poaching adjustment
          delta = 0.01,  # effect of degradation on tourism
          A = 0.01)      # tourism destination attractiveness saturation
 
-X_0 = c(Prey = 300,
+X_0 = c(Prey = 34,
         Predator = 4,
         Tourism = 3,
-        Poaching = 2.30792,
-        RetaliatoryKillings = 13,
+      Poaching = 1.3,
+        RetaliatoryKilling = 15,
         Degradation = 3)
 ```
 
@@ -85,11 +129,11 @@ with(as.list(Pars), {
   
   Prey = (Omega + sigma_p * (lambda_0 + lambda * Tourism))/r_p
   
-  RetaliatoryKillings =  (h_1 * Prey - d - S * Tourism)/beta
+  RetaliatoryKilling =  (h_1 * Prey - d - S * Tourism)/beta
   
   Poaching = ((b * (1 - Prey / (k - eta * Degradation)) - h_0 * Predator) * Prey + m_0 - m * Degradation)/(alpha * Prey)
   
-  c(Prey = Prey, Pred = Predator, T = Tourism, Poach = Poaching, RK = RetaliatoryKillings, D = Degradation)
+c(Prey = Prey, Pred = Predator, T = Tourism, Poach = Poaching, RK = RetaliatoryKilling, D = Degradation)
 })
 ```
 
@@ -107,43 +151,61 @@ ode(
 out %>%
 gather(variable, value, -time) %>%
 ggplot(aes(x = time, y = value, color = variable)) +
-    geom_line() +
-  labs(x = 'time',y = 'Counts')
+geom_line(size = 1) +
+  labs(x = 'Time (days)',y = 'Variable values') +
+  scale_colour_Publication() +
+  theme_Publication()
 ```
 
 ```{r}
-a_vals = c(0.3, 0.7, 1)
-b_vals = c(0.05, 0.1, 0.3)
+t = seq(0, 2500, 0.1)
 
-expand.grid(a = a_vals, b = b_vals) %>%
-  group_by(a, b) %>%
+# Variables the government can change
+A_vals = c(0.1, 0.05, 0.001)
+I_0_vals = c(0.6,0.5,0.4,0.3)
+P_t_vals = c(1)
+I_t_vals = c(0.08,0.1,0.12)
+lambda_0_vals = c(4,5,6)
+lambda_vals = c(36,35,34)
+B_vals = c(1)
+Omega_vals = c(1)
+
+expand.grid(lambda = lambda_vals,
+            lambda_0 = lambda_0_vals) %>%
+  group_by(lambda, lambda_0) %>%
   do({ode(func = predator.pray.model,
           y = X_0,
           times = t,
-          parms = c(a=.$a, b=.$b, c = 0.4, d = 0.05)) %>%
+          parms = c(lambda_0 = .$lambda_0,
+                    lambda = .$lambda,
+                    Pars)) %>%
         as.data.frame()}) %>%
-  ggplot(aes(x = time)) +
-    geom_line(aes(y = x), color = "red") +
-    geom_line(aes(y = y), color = "blue") +
-    facet_grid(a ~ b, scales='free_y', labeller=label_both) +
-  labs(y = "Population")
+  gather(variable, value, -time, -I_t) %>%
+  ggplot(aes(x = time, y = value, color = variable)) +
+      geom_line() +
+      facet_grid(. ~ I_t, scales='free_y', labeller=label_both) +
+      labs(x = 'Time',y = 'Variable values') +
+      scale_colour_Publication() +
+      theme_Publication()
 ```
 
 
 ```{r}
 out %>%
-  ggplot(aes(x = Predator,y = Prey)) +
+  ggplot(aes(x = Predator,y = Prey, colour = time)) +
   geom_path() +
   geom_point(aes(x = X_0[2], y = X_0[1]), colour="red") +
   labs(title = "Predator x Pray Dynamics in the System of ODEs",
        subtitle = "Red point indicates initial condition",
        x = "Predator Population (Thousands)",
-       y = "Prey Population (Thousands)")
+y = "Prey Population (Thousands)") +
+  theme_Publication() +
+  theme(legend.key.size= unit(0.8, "cm"))
 ```
 
 ```{r}
 out %>%
-  plot_ly(x = ~Predator, y = ~Prey, z = ~Poaching) %>%
+plot_ly(x = ~Predator, y = ~Prey, z = ~Poaching, color = ~time) %>%
     add_paths()
 ```
 
@@ -152,4 +214,3 @@ out %>%
 
 
 
- 
