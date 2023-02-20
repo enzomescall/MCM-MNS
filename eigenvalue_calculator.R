@@ -49,9 +49,13 @@ J = matrix(c(
             0, c, -B, 0, 0, 0),
             6, 6, byrow = TRUE)
 
-eigen(J)$values
+Re(eigen(J)$values)
 
-for (gamma in seq(0.01, 100, 0.01)) {
+
+vars = c(gamma, r_p, Omega, sigma_p, lambda_0, lambda, c, B, E_r,
+         I_0, P_t, I_t, G, b, k, eta, h_0, alpha, m_0, m, h_1, d, beta, S)
+
+for (m in seq(0.01, 100, 0.01)) {
   tau = (E_r + I_0 - G)/(P_t - I_t)
   mu = tau*B/c
   omega = A/(delta*tau)
@@ -61,23 +65,23 @@ for (gamma in seq(0.01, 100, 0.01)) {
   
   c(Prey = pi,Pred = mu,Tour = tau, Deg =  omega, Poach = iota, RK = upsilon)
   
-  TAU = b - 2*pi/(k-eta*omega) - h_0*mu - alpha*tau
-  PI = h_1*pi - alpha - beta*upsilon - S*tau
+  TAU = b - 2*pi/(k-eta*omega) - h_0*mu - alpha*iota
+  PI = h_1*pi - d - beta*upsilon - S*tau
   MU = gamma*r_p*pi - gamma*(Omega+sigma_p*lambda_0) - gamma*sigma_p*lambda*tau
   
   
   J = matrix(c(
-    TAU, -h_0*pi, 0, pi**2/((k-eta*omega)**2)-m, alpha*pi, 0,
-    h_1*mu, PI, mu, 0, 0, -beta*mu,
+    TAU, -h_0*pi, 0, eta*pi**2/((k-eta*omega)**2)-m, -alpha*pi, 0,
+    h_1*mu, PI, -S*mu, 0, 0, -beta*mu,
     0, 0, -A/(tau**2), -delta, 0, 0,
     0, 0, P_t - I_t, 0, 0, 0,
     gamma*r_p*tau, 0, -gamma*r_p*lambda*iota, 0, MU, 0,
-    0, c, B, 0, 0, 0),
+    0, c, -B, 0, 0, 0),
     6, 6, byrow = TRUE)
   
-    if (all(Re(eigen(J)$values) < 0)) {
-      print("It worked")
-    }
+  if (any(Re(eigen(J)$values) > 0)) {
+    print(c(m = m, Eigenvalues = which(Re(eigen(J)$values) > 0)))
+  }
 }
 
 

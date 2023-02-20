@@ -79,9 +79,7 @@ predator.pray.model = function(t, State, Pars) {
   })
 }
 
-# Time vectors, parameters, and initial condition
-t = seq(0, 400, 0.1)
-
+# Parameters and initial condition
 Pars = c(gamma = 1,     # speed of poaching adjustment
          r_p =  0.05,   # revenue per poach
          Omega =  0.6,  # opportunity cost
@@ -112,7 +110,7 @@ Pars = c(gamma = 1,     # speed of poaching adjustment
 X_0 = c(Prey = 34,
         Predator = 4,
         Tourism = 3,
-      Poaching = 1.3,
+        Poaching = 1.3,
         RetaliatoryKilling = 15,
         Degradation = 3)
 ```
@@ -138,6 +136,9 @@ c(Prey = Prey, Pred = Predator, T = Tourism, Poach = Poaching, RK = RetaliatoryK
 ```
 
 ```{r}
+# timestep
+t = seq(0, 800, 1)
+
 ode(
   func = predator.pray.model,
   y = X_0,
@@ -155,6 +156,7 @@ geom_line(size = 1) +
   scale_colour_Publication() +
   theme_Publication()
 ```
+
 
 ```{r}
 t = seq(0, 7000, 0.1)
