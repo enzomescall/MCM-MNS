@@ -24,14 +24,14 @@ delta = 0.01  # effect of degradation on Tour
 utility = function(x) {
   
   # weights for each of the variables
-  a0 = 10000 # one unit in prey represents 100,000 animals
-  a1 = 100 # one unit in predator represents 1,000 animals
-  a2 = 10000 # one unit in tourism represents 100,000 yearly visitors
+  a0 = 100000 # one unit in prey represents 100,000 animals
+  a1 = 1000 # one unit in predator represents 1,000 animals
+  a2 = 100000 # one unit in tourism represents 100,000 yearly visitors
   a3 = 0 # chose to measure poaching through prey population
-  a4 = 10000 # high weight on retaliatory killings to keep maasai happy 
-  a5 = 1000 # deg
+  a4 = 1000 # high weight on retaliatory killings to keep maasai happy 
+  a5 = 100000 # deg
   
-  cost_multiplier = 100000 # weight of the cost, assuming millions of USD
+cost_multiplier = 10**6 # weight of the cost, assuming thousands
   
   B = x[1]
   Omega =  x[2]  
@@ -55,9 +55,11 @@ utility = function(x) {
   
   Poach = ((b * (1 - Prey / (k - eta * Deg)) - h_0 * Pred) * Prey + m_0 - m * Deg)/(alpha * Prey)
   
-  cost = B**2 + Omega**2 + lambda_0**2/5 + lambda**2/35 + PI_t**2 + A**2
+  # balancing lambda because of the unique limitation since lambda and I_0 tend
+  # to be an order of magnitude larger than the other variables
+  cost = B**2 + Omega**2 + lambda_0**2 + lambda**2.5/20 - PI_t**2 + A**2 + I_0**2.5
   
-ret = a0 * Prey + a1 * Pred + a2 * Tour - a3 * Poach - a4 * RK - a5 * Deg - cost_multiplier * cost
+  ret = a0 * Prey + a1 * Pred + a2 * Tour - a3 * Poach - a4 * RK - a5 * Deg - cost_multiplier * cost
   
   if (is.nan(ret)) {
     print(c(Prey, Pred, Tour, Deg, Poach, RK))
@@ -74,7 +76,7 @@ initial_vals = c(B = 0.5,   # B
                  P_tminusI_t = 0.2,   # P_t - I_t
                  A = 0.01)  # A
 
-upper = c(1,10,10,20,5,0.99,1)
+upper = c(10,10,10,30,30,0.99,1) # Arbitrary maximums
 lower = c(0.01,0.01,0.01,0.01,0.001,0.01)
 
 
@@ -83,3 +85,5 @@ utility(initial_vals)
 result = optim(par = initial_vals, fn = utility, method = "L-BFGS-B", lower = lower, upper = upper)
 
 result$par
+result$par* 10**6
+sum(result$par) * 10**6

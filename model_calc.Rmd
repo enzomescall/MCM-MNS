@@ -104,7 +104,7 @@ Pars = c(gamma = 1,     # speed of poaching adjustment
          d = 0.17,      # death rate of predators
          beta = 0.1,    # effectiveness of retaliatory killings
          S = 0.01,      # sensitivity of predators to tourist distractions
-         delta = 0.01,  # effect of degradation on tourism
+       delta = 0.01,  # effect of degradation on tourism
          A = 0.01)      # tourism destination attractiveness saturation
 
 X_0 = c(Prey = 34,
@@ -159,18 +159,21 @@ geom_line(size = 1) +
 
 
 ```{r}
-t = seq(0, 7000, 0.1)
+t = seq(0, 1200, 0.1)
 
 # Variables the government can change
-A_vals = c(0.1, 0.05, 0.001)
+A_vals = c(0.015, 0.01, 0.005)
 I_0_vals = c(0.6,0.5,0.4,0.3)
-P_t_vals = c(1)
+P_t_vals = c(0.4, 0.3, 0.35)
 I_t_vals = c(0.08,0.1,0.12)
 lambda_0_vals = c(1,15,39)
 lambda_vals = c(39,15,1)
-B_vals = c(1)
+B_vals = c(0.75,0.5,0.25)
 Omega_vals = c(1)
+```
 
+
+```{r}
 expand.grid(lambda = lambda_vals,
             lambda_0 = lambda_0_vals) %>%
   group_by(lambda, lambda_0) %>%
@@ -190,6 +193,68 @@ expand.grid(lambda = lambda_vals,
       theme_Publication()
 ```
 
+```{r}
+# P_t x I_t
+expand.grid(P_t = P_t_vals,
+            I_t = I_t_vals) %>%
+  group_by(P_t, I_t) %>%
+  do({ode(func = predator.pray.model,
+          y = X_0,
+          times = t,
+          parms = c(P_t = .$P_t,
+                    I_t = .$I_t,
+                    Pars)) %>%
+        as.data.frame()}) %>%
+  gather(variable, value, -time, -I_t, -P_t, -Prey, -Predator, -Poaching, -RetaliatoryKilling, -Degradation) %>% # -Prey, -Predator, -Degradation, - Predator, -RetaliatoryKilling, -Tourism
+  ggplot(aes(x = time, y = value, color = variable)) +
+      geom_line() +
+      facet_grid(I_t ~ P_t, scales='free_y', labeller=label_both) +
+      labs(x = 'Time',y = 'Variable values') +
+      scale_colour_Publication() +
+      theme_Publication()
+```
+
+```{r}
+# I_0 x I_t
+expand.grid(I_0 = I_0_vals,
+            I_t = I_t_vals) %>%
+  group_by(I_0, I_t) %>%
+  do({ode(func = predator.pray.model,
+          y = X_0,
+          times = t,
+          parms = c(I_0 = .$I_0,
+                    I_t = .$I_t,
+                    Pars)) %>%
+        as.data.frame()}) %>%
+  gather(variable, value, -time, -I_t, -I_0, -Prey, -Predator, -Poaching, -RetaliatoryKilling, -Degradation) %>% # -Prey, -Predator, -Degradation, - Predator, -RetaliatoryKilling, -Tourism
+  ggplot(aes(x = time, y = value, color = variable)) +
+      geom_line() +
+      facet_grid(I_t ~ I_0, scales='free_y', labeller=label_both) +
+      labs(x = 'Time',y = 'Variable values') +
+      scale_colour_Publication() +
+      theme_Publication()
+```
+
+```{r}
+# A x B
+expand.grid(A = A_vals,
+            B = B_vals) %>%
+  group_by(A, B) %>%
+  do({ode(func = predator.pray.model,
+          y = X_0,
+          times = t,
+          parms = c(A = .$A,
+                    B = .$B,
+                    Pars)) %>%
+        as.data.frame()}) %>%
+  gather(variable, value, -time, -A, -B, -Prey, -Poaching, -Degradation) %>% # -Prey, -Predator, -Degradation, - Predator, -RetaliatoryKilling, -Tourism
+  ggplot(aes(x = time, y = value, color = variable)) +
+      geom_line() +
+      facet_grid(A ~ B, scales='free_y', labeller=label_both) +
+      labs(x = 'Time',y = 'Variable values') +
+      scale_colour_Publication() +
+      theme_Publication()
+```
 
 ```{r}
 out %>%

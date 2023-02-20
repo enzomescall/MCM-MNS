@@ -41,13 +41,13 @@ MU = gamma*r_p*pi - gamma*(Omega+sigma_p*lambda_0) - gamma*sigma_p*lambda*tau
 
 
 J = matrix(c(
-            TAU, -h_0*pi, 0, eta*pi**2/((k-eta*omega)**2)-m, -alpha*pi, 0,
-            h_1*mu, PI, -S*mu, 0, 0, -beta*mu,
-            0, 0, -A/(tau**2), -delta, 0, 0,
-            0, 0, P_t - I_t, 0, 0, 0,
-            gamma*r_p*tau, 0, -gamma*r_p*lambda*iota, 0, MU, 0,
-            0, c, -B, 0, 0, 0),
-            6, 6, byrow = TRUE)
+  TAU, -h_0*pi, 0, eta*pi**2/((k-eta*omega)**2)-m, -alpha*pi, 0,
+  h_1*mu, PI, -S*mu, 0, 0, -beta*mu,
+  0, 0, -A/(tau**2), -delta, 0, 0,
+  0, 0, P_t - I_t, 0, 0, 0,
+  gamma*r_p*tau, 0, -gamma*r_p*lambda*iota, 0, MU, 0,
+  0, c, -B, 0, 0, 0),
+  6, 6, byrow = TRUE)
 
 Re(eigen(J)$values)
 
