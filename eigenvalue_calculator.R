@@ -1,15 +1,15 @@
 # Eigenvalue calculation
 gamma = 1     # speed of poaching adjustment
 r_p =  0.05   # revenue per poach
-Omega =  0.6  # opportunity cost
+Omega =  1  # opportunity cost
 sigma_p = 0.01# risk of poaching
-lambda_0 = 5  # base law enforcement level
-lambda = 35   # law enforcement per investment
+lambda_0 = 1  # base law enforcement level
+lambda = 1   # law enforcement per investment
 c = 0.375     # culling rate per predator
 B = 0.5       # boma construction per unit invested
 E_r = 0.5     # baseline recovery rate
-I_0 = 0.5     # baseline government investment
-P_t = 0.3     # average pollution per tourist
+I_0 = 0.1     # baseline government investment
+P_t = 0.9     # average pollution per tourist
 I_t = 0.1     # investment into ecology per tourism income
 G = 0.4       # impact of global warming on degradation
 b = 0.3       # birth rate of prey
@@ -55,6 +55,7 @@ Re(eigen(J)$values)
 vars = c(gamma, r_p, Omega, sigma_p, lambda_0, lambda, c, B, E_r,
          I_0, P_t, I_t, G, b, k, eta, h_0, alpha, m_0, m, h_1, d, beta, S)
 
+# parameter variation for sensitivity analysis
 for (m in seq(0.01, 100, 0.01)) {
   tau = (E_r + I_0 - G)/(P_t - I_t)
   mu = tau*B/c
